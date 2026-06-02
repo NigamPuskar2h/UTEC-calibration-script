@@ -1,0 +1,9 @@
+#INPUT FILE
+Data Inputs:
+  region: "lower"
+  resonant_freq_column: 4
+  bin_size: 1
+
+File Paths:
+  logger_path: 'C:\Users\nigam.puskar\OneDrive - Acteon Group Ltd\Logger project\Transocean Logger\Scripts\logger path\207918-1-integrisoft.CSV'
+  sensor_path: 'C:\Users\nigam.puskar\OneDrive - Acteon Group Ltd\Logger project\Transocean Logger\Scripts\sensor path'
