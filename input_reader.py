@@ -13,9 +13,8 @@ def read_input_yaml(input_yaml_file):
             
             self.remove_logger_headings = {
             k: v for k, v in self.original_logger_headings.items()
-            if v == "n/a"
+            if v == None
         }
-
 
     class FilePaths:
         def __init__(self, path):
@@ -29,25 +28,15 @@ def read_input_yaml(input_yaml_file):
     config = InputConfig(InputYaml)
     return config
 
+#def 
+
 def read_csv(file):
     df = pd.read_csv(file, header=None, names=["raw"])
     return df
 
-def parse_logger(df, config):
-    logger_df = df.iloc[:, 0].str.extractall(r'Result:\s*(?P<Result>[\d.E+-]+).*?').astype(float)
-    logger_df = logger_df.unstack()
-    logger_df.columns = logger_df.columns.get_level_values(1)
-    
-    column_names = config.data.original_logger_headings
-    logger_df = logger_df.rename(columns = column_names)
-
-    return logger_df
-
-def format_logger_df(df, config):
-    cols_to_remove = list(config.data.remove_logger_headings.values())
-    format_logger_df = df.drop(columns = cols_to_remove)
-    format_logger_df = format_logger_df.sort_index(axis=1)
-    return format_logger_df
+def read_xlsx(file, sheet_index):
+    df = pd.read_excel(file, sheet_name=sheet_index, header=0)
+    return df
 
 def clean_df(df):
     df = df.dropna(axis=0, how='any')
