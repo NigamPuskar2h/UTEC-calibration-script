@@ -1,4 +1,6 @@
 import pandas as pd 
+import numpy as np
+from scipy.stats import linregress
 
 #def df_compare(df):
     
@@ -44,7 +46,29 @@ def expected_acc_values(df_logger_avg):
             else:
                 print("Out of range")
 
-    return(df_expected_acc)
+    return(df_expected_acc, df_logger_avg_acc)
 
+def sensitivity_calc(df_expected_acc, df_logger_avg_acc):
+    x1 = pd.to_numeric(df_expected_acc.iloc[:, 0])
+    x2 = pd.to_numeric(df_logger_avg_acc.iloc[:, 0])
 
+    y1 = pd.to_numeric(df_expected_acc.iloc[:, 1])
+    y2 = pd.to_numeric(df_logger_avg_acc.iloc[:, 1])
 
+    z1 = pd.to_numeric(df_expected_acc.iloc[:, 2])
+    z2 = pd.to_numeric(df_logger_avg_acc.iloc[:, 2])
+
+    x_sens_offs = np.polyfit(x2, x1, 1)
+    y_sens_offs = np.polyfit(y2, y1, 1)
+    z_sens_offs = np.polyfit(z2, z1, 1)
+
+    x_sens = x_sens_offs[0]
+    x_offs = -x_sens_offs[1]/x_sens
+
+    y_sens = y_sens_offs[0]
+    y_offs = -y_sens_offs[1]/y_sens
+
+    z_sens = z_sens_offs[0]
+    z_offs = -z_sens_offs[1]/z_sens
+
+    return(x_sens, x_offs, y_sens, y_offs, z_sens, z_offs)
