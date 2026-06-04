@@ -2,13 +2,13 @@ import pandas as pd
 import numpy as np
 from scipy.stats import linregress
 
-#def df_compare(df):
-    
-
 #Returns the average of all the columns in a df
-def df_average(df):
+def df_average(df, n):
     #average_df = df.mean(axis=0)
-    average_df = df.select_dtypes(include="number").mean(axis=0)
+    if n == None:
+        average_df = df.select_dtypes(include="number").mean(axis=0)
+    elif n != None:
+        average_df = df.iloc[:n].select_dtypes(include="number").mean(axis=0)
     average_df = average_df.to_frame().T
     return(average_df)
 

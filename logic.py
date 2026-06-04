@@ -24,7 +24,7 @@ def main_logic():
         df_logger_cleaned[key] = cleaned
         df_logger_acc[key] = input_reader.acc_df(cleaned)
         df_logger_ar[key] = input_reader.ar_df(cleaned)
-        logger_avg.append(calculation.df_average(cleaned))
+        logger_avg.append(calculation.df_average(cleaned, 20))
 
     df_logger_avg = pd.concat(logger_avg)
     

@@ -26,9 +26,7 @@ def read_input_yaml(input_yaml_file):
             self.path = FilePaths(input_yaml["File Paths"])
 
     config = InputConfig(InputYaml)
-    return config
-
-#def 
+    return config 
 
 def read_csv(file):
     df = pd.read_csv(file, header=None, names=["raw"])
@@ -42,3 +40,10 @@ def clean_df(df):
     df = df.dropna(axis=0, how='any')
     return df
 
+def acc_df(df):
+    df_logger_acc = df.drop(["ArX", "ArY"], axis=1)
+    return df_logger_acc
+
+def ar_df(df):
+    df_logger_ar = df.drop(["AccX", "AccY", "AccZ"], axis = 1)
+    return df_logger_ar
