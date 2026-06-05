@@ -18,8 +18,7 @@ def df_SD(df):
     SD_df = SD_df.to_frame().T
     return(SD_df)
 
-def expected_acc_values(df_logger_avg):
-    df_logger_avg_acc = df_logger_avg.drop(["ArX", "ArY"], axis=1)
+def expected_acc_values(df_logger_avg_acc):
     df_expected_acc = pd.DataFrame(index=df_logger_avg_acc.index, columns = df_logger_avg_acc.columns)
     
     downwards_volts = 3
@@ -32,15 +31,16 @@ def expected_acc_values(df_logger_avg):
 
     buffer = 0.2
     
+    #Think this also loops through the data values, needs changing so it ignores the first column
     for i in range(df_logger_avg_acc.shape[0]):
         for j in range(df_logger_avg_acc.shape[1]):
-            if df_logger_avg_acc.iloc[i,j] >= downwards_volts - buffer and df_logger_avg_acc.iloc[i,j] <= downwards_volts + buffer:
+            if df_logger_avg_acc.iloc[i,j] >= (downwards_volts - buffer) and df_logger_avg_acc.iloc[i,j] <= (downwards_volts + buffer):
                 df_expected_acc.iloc[i,j] = downwards_g    
 
-            elif df_logger_avg_acc.iloc[i,j] >= orthogonal_volts - buffer and df_logger_avg_acc.iloc[i,j] <= orthogonal_volts + buffer:
+            elif df_logger_avg_acc.iloc[i,j] >= (orthogonal_volts) - buffer and df_logger_avg_acc.iloc[i,j] <= (orthogonal_volts + buffer):
                 df_expected_acc.iloc[i,j] = orthogonal_g    
 
-            elif df_logger_avg_acc.iloc[i,j] >= upwards_volts - buffer and df_logger_avg_acc.iloc[i,j] <= upwards_volts + buffer:
+            elif df_logger_avg_acc.iloc[i,j] >= (upwards_volts - buffer) and df_logger_avg_acc.iloc[i,j] <= (upwards_volts + buffer):
                 df_expected_acc.iloc[i,j] = upwards_g
   
             else:

@@ -29,7 +29,7 @@ def read_input_yaml(input_yaml_file):
     return config 
 
 def read_csv(file):
-    df = pd.read_csv(file, header=None, names=["raw"])
+    df = pd.read_csv(file, header=None)
     return df
 
 def read_xlsx(file, sheet_index):
