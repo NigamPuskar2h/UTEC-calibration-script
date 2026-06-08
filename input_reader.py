@@ -1,5 +1,6 @@
 import pandas as pd 
 from ruamel.yaml import YAML
+from datetime import datetime
 
 def read_input_yaml(input_yaml_file):
     yaml = YAML()
@@ -41,9 +42,18 @@ def clean_df(df):
     return df
 
 def acc_df(df):
-    df_logger_acc = df.drop(["ArX", "ArY"], axis=1)
+    cols_to_remove = ["ArX", "ArY", "ARXY", "ARZ"]
+    #cols_to_remove = ["ArX", "ArY", "ARXY", "ARZ"]
+    df_logger_acc = df.drop(columns = cols_to_remove, errors="ignore")
     return df_logger_acc
 
 def ar_df(df):
-    df_logger_ar = df.drop(["AccX", "AccY", "AccZ"], axis = 1)
+    df_logger_ar = df.drop(["AccX", "AccY", "AccZ"], axis=1)
     return df_logger_ar
+
+def extract_start_logger(df):
+    start_val = datetime.strptime(df.iloc[0,0],'%H:%M:%S.%f')
+    return start_val
+
+
+#def add_time(df, )
