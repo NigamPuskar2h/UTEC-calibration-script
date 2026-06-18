@@ -18,6 +18,10 @@ def df_SD(df):
     SD_df = SD_df.to_frame().T
     return(SD_df)
 
+def add_time(df, start_time_logger_array):
+    df["Time (formatted)"] = df["Time"] + start_time_logger_array
+    return(df)
+
 def expected_acc_values(df_logger_avg_acc):
     df_expected_acc = pd.DataFrame(index=df_logger_avg_acc.index, columns = df_logger_avg_acc.columns)
     

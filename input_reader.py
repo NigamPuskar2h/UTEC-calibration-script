@@ -43,7 +43,6 @@ def clean_df(df):
 
 def acc_df(df):
     cols_to_remove = ["ArX", "ArY", "ARXY", "ARZ"]
-    #cols_to_remove = ["ArX", "ArY", "ARXY", "ARZ"]
     df_logger_acc = df.drop(columns = cols_to_remove, errors="ignore")
     return df_logger_acc
 
@@ -52,7 +51,7 @@ def ar_df(df):
     return df_logger_ar
 
 def extract_start_logger(df):
-    start_val = datetime.strptime(df.iloc[0,0],'%H:%M:%S.%f')
+    start_val = (pd.to_timedelta(df.iloc[0,0]).value - 1) // 1_000_000 #Minus 1 because of rounding error when parsing
     return start_val
 
 
