@@ -51,11 +51,6 @@ def ar_df(df):
     return df_logger_ar
 
 def extract_start_logger(df):
-    start_val = (pd.to_timedelta(df.iloc[0,0]).value - 1) // 1_000_000 #Minus 1 because of rounding error when parsing
-    return start_val
-'''
-def extract_start_logger(df):
     td = pd.to_timedelta(df.iloc[0,0])
     time_ms = int(td.total_seconds()*1000) -1 #Minus 1 because of rounding error when parsing
     return time_ms
-'''
