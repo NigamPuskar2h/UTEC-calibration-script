@@ -20,7 +20,8 @@ def df_SD(df):
 
 def add_time(df, start_time_logger_array):
     df["Time (formatted)"] = df["Time"] + start_time_logger_array
-    return(df)
+    df_reordered = df.loc[:,['Time (formatted)', 'AccX', 'AccY', 'AccZ', 'ARXY', 'ARZ']]
+    return(df_reordered)
 
 def expected_acc_values(df_logger_avg_acc):
     df_expected_acc = pd.DataFrame(index=df_logger_avg_acc.index, columns = df_logger_avg_acc.columns)
