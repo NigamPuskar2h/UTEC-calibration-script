@@ -42,12 +42,12 @@ def main_logic():
         df_reference_added_time = calculation.add_time_reference(df_reference_original[key], start_time_logger_array[i])
         df_reference_formatted[key] = df_reference_added_time #Can change so to add to reference_clean instead of making new format one
 #------------------------------------------
-
+    
     df_logger_acc, df_logger_ar = df_acc_ar(num_sheets, logger_sheet_index, df_logger_formatted)
     df_reference_acc, df_reference_ar = df_acc_ar(num_sheets, reference_sheet_index, df_reference_formatted)
-
+    
     #print(df_logger_cleaned)
-    #------------------------------------------
+#------------------------------------------
 #AVERAGE LOOP
     logger_avg_acc = []
     num_values = 20 #need to verify this
@@ -57,10 +57,27 @@ def main_logic():
     df_logger_avg_acc = pd.concat(logger_avg_acc)
 #------------------------------------------
 
+#------------------------------------------
+#WORK OUT TURNING POINTS
+    for i in range(num_sheets):
+        key = logger_sheet_index[i]
+        values = df_logger_formatted[key]
 
-    df_expected_acc, df_logger_avg_acc = calculation.expected_acc_values(df_logger_avg_acc)
-    x_sens, x_offs, y_sens, y_offs, z_sens, z_offs = calculation.sensitivity_calc(df_expected_acc, df_logger_avg_acc)
+        values["gradient"] = calculation.step_detection(values['ArY'])
+    #pd.set_option('display.max_rows', None)
+    step_up = df_logger_formatted[2].nlargest(40, "gradient")
+    step_down = df_logger_formatted[2].nsmallest(40, "gradient")
+    threshold = 0.2
+    filtered_df = step_up[step_up["gradient"] > threshold]
+    print(filtered_df.sort_values(by = ["Time (formatted)"]))
+
+
+#------------------------------------------
+    #df_expected_acc, df_logger_avg_acc = calculation.expected_acc_values(df_logger_avg_acc)
+    #x_sens, x_offs, y_sens, y_offs, z_sens, z_offs = calculation.sensitivity_calc(df_expected_acc, df_logger_avg_acc)
     #print(x_sens, y_sens , z_sens, x_offs, y_offs, z_offs)
+
+
 
 def df_clean(num_sheets, sheet_index, df):
     df_cleaned = {}

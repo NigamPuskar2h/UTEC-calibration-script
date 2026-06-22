@@ -29,7 +29,6 @@ def add_time_logger(df):
     df['Time (formatted)'] = time_ms
     df_reordered = df.loc[:,['Time (formatted)', 'AccX', 'AccY', 'AccZ', 'ArX', 'ArY']] #This, along with the same func in calc, should have the names in a variable
     return(df_reordered)
-    
 
 def expected_acc_values(df_logger_avg_acc):
     df_expected_acc = pd.DataFrame(index=df_logger_avg_acc.index, columns = df_logger_avg_acc.columns)
@@ -85,3 +84,13 @@ def sensitivity_calc(df_expected_acc, df_logger_avg_acc):
     z_offs = -z_sens_offs[1]/z_sens
 
     return(x_sens, x_offs, y_sens, y_offs, z_sens, z_offs)
+
+def step_detection(df):
+    #df = pd.DataFrame({"A": [0, 1, 2, 3, 4, 5, 6, 7, 8]})
+    smoothed_signal = rolling_average(df)
+    gradient = df.diff()
+    return gradient
+
+def rolling_average(df):
+    rolling_average = df.rolling(5,center=True, closed='both').sum()
+    return rolling_average
