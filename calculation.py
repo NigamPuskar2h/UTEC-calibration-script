@@ -18,10 +18,18 @@ def df_SD(df):
     SD_df = SD_df.to_frame().T
     return(SD_df)
 
-def add_time(df, start_time_logger_array):
+def add_time_reference(df, start_time_logger_array):
     df["Time (formatted)"] = df["Time"] + start_time_logger_array
     df_reordered = df.loc[:,['Time (formatted)', 'AccX', 'AccY', 'AccZ', 'ARXY', 'ARZ']]
     return(df_reordered)
+
+def add_time_logger(df):
+    td = pd.to_timedelta(df.iloc[:, 0])
+    time_ms = (td.dt.total_seconds() * 1000) - 1
+    df['Time (formatted)'] = time_ms
+    df_reordered = df.loc[:,['Time (formatted)', 'AccX', 'AccY', 'AccZ', 'ArX', 'ArY']] #This, along with the same func in calc, should have the names in a variable
+    return(df_reordered)
+    
 
 def expected_acc_values(df_logger_avg_acc):
     df_expected_acc = pd.DataFrame(index=df_logger_avg_acc.index, columns = df_logger_avg_acc.columns)

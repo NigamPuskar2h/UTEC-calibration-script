@@ -17,8 +17,9 @@ def main_logic():
     df_reference_cleaned = df_clean(num_sheets, reference_sheet_index, df_reference_original)
 
 #------------------------------------------
-#START TIME FOR REFERENCE LOOP
+#START TIME FOR LOGGER LOOP and FORMAT LOGGER LOOP
     start_time_logger_array = []
+    df_logger_formatted = {}
     #for i, key in enumerate(logger_sheet_index):
     for i in range(num_sheets):
         key = logger_sheet_index[i]
@@ -26,24 +27,27 @@ def main_logic():
         #logger_avg_acc.append(calculation.df_average(df_logger_acc[key], 20))
         start_time_logger = input_reader.extract_start_logger(values)
         start_time_logger_array.append(start_time_logger)
+        
+        
+        df_logger_added_time = calculation.add_time_logger(values)
+        df_logger_formatted[key] = df_logger_added_time
     print(start_time_logger_array)
-#------------------------------------------
-    
+#------------------------------------------)
 #------------------------------------------
 #ADDING TIME TO REFERENCE DF
     df_reference_formatted = {}
     for i in range(num_sheets):
         key = reference_sheet_index[i]
         #values = df
-        df_added_time = calculation.add_time(df_reference_original[key], start_time_logger_array[i])
-        df_reference_formatted[key] = df_added_time #Can change so to add to reference_clean instead of making new format one
+        df_reference_added_time = calculation.add_time_reference(df_reference_original[key], start_time_logger_array[i])
+        df_reference_formatted[key] = df_reference_added_time #Can change so to add to reference_clean instead of making new format one
 #------------------------------------------
 
-    df_logger_acc, df_logger_ar = df_acc_ar(num_sheets, logger_sheet_index, df_logger_original)
+    df_logger_acc, df_logger_ar = df_acc_ar(num_sheets, logger_sheet_index, df_logger_formatted)
     df_reference_acc, df_reference_ar = df_acc_ar(num_sheets, reference_sheet_index, df_reference_formatted)
 
-    print(df_logger_cleaned)
-#------------------------------------------
+    #print(df_logger_cleaned)
+    #------------------------------------------
 #AVERAGE LOOP
     logger_avg_acc = []
     num_values = 20 #need to verify this
