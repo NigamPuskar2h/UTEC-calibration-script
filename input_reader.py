@@ -59,14 +59,6 @@ def extract_start_logger(df):
     time_ms = int(td.total_seconds()*1000) -1
     return time_ms
 
-def extract_time_logger_all(df):
-    td = pd.to_timedelta(df.iloc[:, 0])
-    time_ms = (td.dt.total_seconds() * 1000) - 1
-    df['Time (formatted)'] = time_ms
-    df_reordered = df.loc[:,['Time (formatted)', 'AccX', 'AccY', 'AccZ', 'ArX', 'ArY']] #This, along with the same func in calc, should have the names in a variable
-    return(df_reordered)
-    #return time_ms.astype(int)
-
 '''
 def extract_time_logger(df):
     time_ms = (pd.to_timedelta(df.iloc[:,0]).value - 1) // 1_000_000 #Minus 1 because of rounding error when parsing
