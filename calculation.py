@@ -87,12 +87,18 @@ def sensitivity_calc(df_expected_acc, df_logger_avg_acc):
 
     return(x_sens, x_offs, y_sens, y_offs, z_sens, z_offs)
 
-def step_detection(df):
-    #df = pd.DataFrame({"A": [0, 1, 2, 3, 4, 5, 6, 7, 8]})
-    smoothed_signal = rolling_average(df)
-    gradient = df.diff()
+def gradient(df):
+    numeric = pd.to_numeric(df, errors = 'coerce')  #converts any non-numerical data to 0 difference
+    smoothed_signal = numeric.rolling(window=4, center=True).median()
+    #smoothed_signal = rolling_average(numeric)
+    gradient = smoothed_signal.diff().fillna(0)
     return gradient
 
 def rolling_average(df):
-    rolling_average = df.rolling(5,center=True, closed='both').sum()
+    rolling_average = df.rolling(3,center=True, closed='both').sum()
     return rolling_average
+
+def smooth_signal(df):
+    numeric = pd.to_numeric(df, errors = 'coerce')  #converts any non-numerical data to 0 difference
+    smoothed_signal = numeric.rolling(window=4, center=True).median()
+    return smoothed_signal

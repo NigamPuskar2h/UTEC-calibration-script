@@ -5,7 +5,8 @@ from dataclasses import dataclass
 
 @dataclass
 class data_information:
-    def __init__(self, sheet_index):
+    def __init__(self, sheet_index, name):
+        self.sheet_name = name
         self.sheet_index = sheet_index
         self.df_original = dict
         self.df_cleaned = dict
@@ -21,6 +22,7 @@ def data_formatter(file, logger, reference, num_sheets):
     reference.df_cleaned = df_clean(num_sheets, reference.sheet_index, reference.df_original)
 
     logger.df_formatted, reference.df_formatted = format_df_time(logger, reference, num_sheets) # This should be improved as now you have many functions inside the time_format function, should be homogeneous
+    
 
 def main_logic():
     config = input_reader.read_input_yaml(r"Input.yaml")
@@ -29,8 +31,8 @@ def main_logic():
     logger_sheet_index = [2, 3, 4, 5, 6, 7, 8, 9]
     reference_sheet_index = [10, 11, 12, 13, 14, 15, 16, 17]
 
-    logger = data_information(logger_sheet_index)
-    reference = data_information(reference_sheet_index)
+    logger = data_information(logger_sheet_index, "logger")
+    reference = data_information(reference_sheet_index, "reference")
 
     num_sheets = len(logger_sheet_index)
 
@@ -38,8 +40,6 @@ def main_logic():
 
     logger.df_acc, logger.df_ar = df_acc_ar(num_sheets, logger.sheet_index, logger.df_formatted)
     reference.df_acc, reference.df_ar = df_acc_ar(num_sheets, reference.sheet_index, reference.df_formatted)
-    print(reference.df_acc)
-    #print(reference.df_formatted)
 
 #------------------------------------------
 #AVERAGE LOOP
@@ -50,21 +50,24 @@ def main_logic():
         logger_avg_acc.append(calculation.df_average(logger.df_acc[key], num_values))
     df_logger_avg_acc = pd.concat(logger_avg_acc)
 #------------------------------------------
-
+    #turning_points(num_sheets, logger.sheet_index, logger.df_formatted, logger.sheet_name)
+    turning_points(num_sheets, reference.sheet_index, reference.df_formatted, reference.sheet_name, "ARZ")
+    #print(reference.df_formatted)
+'''
 #------------------------------------------
 #WORK OUT TURNING POINTS
     for i in range(num_sheets):
         key = logger_sheet_index[i]
-        values = df_logger_formatted[key]
+        values = logger.df_formatted[key]
 
         values["gradient"] = calculation.step_detection(values['ArY'])
     #pd.set_option('display.max_rows', None)
-    step_up = df_logger_formatted[2].nlargest(40, "gradient")
-    step_down = df_logger_formatted[2].nsmallest(40, "gradient")
+    step_up = logger.df_formatted[2].nlargest(40, "gradient")
+    step_down = logger.df_formatted[2].nsmallest(40, "gradient")
     threshold = 0.2
     filtered_df = step_up[step_up["gradient"] > threshold]
     print(filtered_df.sort_values(by = ["Time (formatted)"]))
-
+'''
 
     #------------------------------------------
     #df_expected_acc, df_logger_avg_acc = calculation.expected_acc_values(df_logger_avg_acc)
@@ -115,3 +118,25 @@ def format_df_time(logger, reference, num_sheets):
         df_reference_added_time = calculation.add_time_reference(reference.df_cleaned[key], start_time_logger_array[i])
         df_reference_formatted[key] = df_reference_added_time #Can change so to add to reference_clean instead of making new format one
     return (df_logger_formatted, df_reference_formatted)
+
+def turning_points(num_sheets, sheet_index, df, sheet_name, column_heading):
+    step_up = {}
+    step_down = {}
+    filtered_df = {}
+
+    if sheet_name == "logger":
+        threshold = 0.2
+    elif sheet_name == "reference":
+        threshold = 200
+
+    for i in range(num_sheets):
+        key = sheet_index[i]
+        values = df[key]
+
+        values["gradient"] = calculation.gradient(values[column_heading]) #since the logger and reference have different titles, put it as 'or'
+
+        step_up[key] = values.nlargest(40, "gradient")
+        step_down[key] = values.nsmallest(40, "gradient")
+
+        filtered_df[key] = step_up[key][step_up[key]["gradient"] > threshold]
+        print(filtered_df[key].sort_values(by = ["Time (formatted)"]))
