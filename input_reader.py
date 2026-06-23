@@ -23,7 +23,6 @@ def read_input_yaml(input_yaml_file):
 
     class InputConfig:
         def __init__(self, input_yaml):
-            self.data = DataInputs(input_yaml["Data Inputs"])
             self.path = FilePaths(input_yaml["File Paths"])
 
     config = InputConfig(InputYaml)

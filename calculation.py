@@ -19,11 +19,13 @@ def df_SD(df):
     return(SD_df)
 
 def add_time_reference(df, start_time_logger_array):
+    df = df.copy()
     df["Time (formatted)"] = df["Time"] + start_time_logger_array
     df_reordered = df.loc[:,['Time (formatted)', 'AccX', 'AccY', 'AccZ', 'ARXY', 'ARZ']]
     return(df_reordered)
 
 def add_time_logger(df):
+    df = df.copy()
     td = pd.to_timedelta(df.iloc[:, 0])
     time_ms = (td.dt.total_seconds() * 1000) - 1
     df['Time (formatted)'] = time_ms
