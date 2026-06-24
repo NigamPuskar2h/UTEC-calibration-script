@@ -89,7 +89,7 @@ def sensitivity_calc(df_expected_acc, df_logger_avg_acc):
 
 def gradient(df):
     numeric = pd.to_numeric(df, errors = 'coerce')  #converts any non-numerical data to 0 difference
-    smoothed_signal = numeric.rolling(window=4, center=True).median()
+    smoothed_signal = numeric.rolling(window=4, center=True).median()   #These two should really be in the data filter function
     #smoothed_signal = rolling_average(numeric)
     gradient = smoothed_signal.diff().fillna(0)
     return gradient
@@ -99,6 +99,6 @@ def rolling_average(df):
     return rolling_average
 
 def smooth_signal(df):
-    numeric = pd.to_numeric(df, errors = 'coerce')  #converts any non-numerical data to 0 difference
-    smoothed_signal = numeric.rolling(window=4, center=True).median()
+    numeric = pd.to_numeric(df, errors = 'coerce')
+    smoothed_signal = numeric.rolling(window=3, center=True).median()
     return smoothed_signal

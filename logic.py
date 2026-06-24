@@ -52,22 +52,6 @@ def main_logic():
 #------------------------------------------
     #turning_points(num_sheets, logger.sheet_index, logger.df_formatted, logger.sheet_name)
     turning_points(num_sheets, reference.sheet_index, reference.df_formatted, reference.sheet_name, "ARZ")
-    #print(reference.df_formatted)
-'''
-#------------------------------------------
-#WORK OUT TURNING POINTS
-    for i in range(num_sheets):
-        key = logger_sheet_index[i]
-        values = logger.df_formatted[key]
-
-        values["gradient"] = calculation.step_detection(values['ArY'])
-    #pd.set_option('display.max_rows', None)
-    step_up = logger.df_formatted[2].nlargest(40, "gradient")
-    step_down = logger.df_formatted[2].nsmallest(40, "gradient")
-    threshold = 0.2
-    filtered_df = step_up[step_up["gradient"] > threshold]
-    print(filtered_df.sort_values(by = ["Time (formatted)"]))
-'''
 
     #------------------------------------------
     #df_expected_acc, df_logger_avg_acc = calculation.expected_acc_values(df_logger_avg_acc)
@@ -119,7 +103,12 @@ def format_df_time(logger, reference, num_sheets):
         df_reference_formatted[key] = df_reference_added_time #Can change so to add to reference_clean instead of making new format one
     return (df_logger_formatted, df_reference_formatted)
 
-def turning_points(num_sheets, sheet_index, df, sheet_name, column_heading):
+#GETS THE START AND POINTS FOR EACH MINI JUMPP. Next step is to use start and end points to get ranges, which you can then use to get the timess.
+def turning_points(num_sheets, sheet_index, df, sheet_name, column_heading):    
+    step_up_temp = []
+    step_down_temp = []
+    filtered_step_up = []
+    filtered_step_down = []
     step_up = {}
     step_down = {}
     filtered_df = {}
@@ -135,8 +124,22 @@ def turning_points(num_sheets, sheet_index, df, sheet_name, column_heading):
 
         values["gradient"] = calculation.gradient(values[column_heading]) #since the logger and reference have different titles, put it as 'or'
 
-        step_up[key] = values.nlargest(40, "gradient")
-        step_down[key] = values.nsmallest(40, "gradient")
+        step_up_temp = values.nlargest(20, "gradient")
+        step_down_temp = values.nsmallest(20, "gradient")
+        
 
-        filtered_df[key] = step_up[key][step_up[key]["gradient"] > threshold]
-        print(filtered_df[key].sort_values(by = ["Time (formatted)"]))
+        filtered_step_up = step_up_temp[step_up_temp['gradient'] > threshold].sort_values(by = ["Time (formatted)"])
+        filtered_step_down = step_down_temp[step_down_temp['gradient'].abs() > threshold].sort_values(by = ["Time (formatted)"])
+
+        step_up[key] = turning_point(filtered_step_up, "first")
+        step_down[key] = turning_point(filtered_step_down, "last")
+    
+    return step_up, step_down
+        
+def turning_point(df, position):
+    indices = df.index.to_series()
+
+    if position == "first":
+        return indices[indices.diff().abs().fillna(2) != 1].tolist()
+    elif position == "last":
+        return indices[indices.diff(periods=-1).abs().fillna(2) != 1].tolist()
