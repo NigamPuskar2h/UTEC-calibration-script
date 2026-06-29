@@ -51,7 +51,9 @@ def ar_df(df):
 
 def extract_start_logger(df):
     td = pd.to_timedelta(df.iloc[0,0])
-    time_ms = int(td.total_seconds()*1000) -1 #Minus 1 because of rounding error when parsing
+    #time_ms = int(td.total_seconds()*1000) -1 #Minus 1 because of rounding error when parsing
+    #time_ms = (td.dt.total_seconds() * 1000).astype(int)
+    time_ms = int(td.total_seconds() * 1000)
     return time_ms
 
 #def over_voltage_interpolater(df):

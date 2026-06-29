@@ -12,6 +12,5 @@ def main():
         xlsx_path = matches[0]
         print(f"Found: {xlsx_path}")
     logic.main_logic()
-
 if __name__ == "__main__":
     main() 

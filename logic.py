@@ -41,22 +41,48 @@ def main_logic():
     logger.df_acc, logger.df_ar = df_acc_ar(num_sheets, logger.sheet_index, logger.df_formatted)
     reference.df_acc, reference.df_ar = df_acc_ar(num_sheets, reference.sheet_index, reference.df_formatted)
 
+    pd.set_option("display.max_rows", None)
+    pd.set_option("display.max_columns", None)
+
+    reference_step_times = calculation.step_detection(num_sheets, reference.sheet_index, reference.df_formatted, reference.sheet_name, "ARZ")
+    #print(reference_step_times)
+    logger_step_times = calculation.logger_step_detection(num_sheets, reference.sheet_index, logger.sheet_index, reference_step_times, logger.df_formatted)
+    #print(logger_step_times)
+    #print(logger.df_formatted[2]["Time (formatted)"])
+
+    '''  
+    for sheet, steps in logger_step_times.items():
+        for step_num, data in steps.items():
+            print(f"Sheet: {sheet}, Step: {step_num}")
+            #print(logger.df_formatted[sheet, ])
+            print(data)
+    #print(logger.df_formatted[2].loc[:,"Time (formatted)"])
+''' 
 #------------------------------------------
-#AVERAGE LOOP
+#AVERAGE ACC LOOP
     logger_avg_acc = []
+    start = 0
     num_values = 20 #need to verify this
     for i in range(num_sheets):
         key = logger_sheet_index[i]
-        logger_avg_acc.append(calculation.df_average(logger.df_acc[key], num_values))
+        logger_avg_acc.append(calculation.df_average(logger.df_acc[key], start,  num_values))
     df_logger_avg_acc = pd.concat(logger_avg_acc)
-#------------------------------------------
-    #turning_points(num_sheets, logger.sheet_index, logger.df_formatted, logger.sheet_name)
-    turning_points(num_sheets, reference.sheet_index, reference.df_formatted, reference.sheet_name, "ARZ")
+    df_logger_avg_acc = df_logger_avg_acc.drop('Time (formatted)', axis=1)
 
-    #------------------------------------------
-    #df_expected_acc, df_logger_avg_acc = calculation.expected_acc_values(df_logger_avg_acc)
-    #x_sens, x_offs, y_sens, y_offs, z_sens, z_offs = calculation.sensitivity_calc(df_expected_acc, df_logger_avg_acc)
-    #print(x_sens, y_sens , z_sens, x_offs, y_offs, z_offs)
+    df_expected_acc = calculation.expected_acc_values(df_logger_avg_acc)
+    x_sens, x_offs, y_sens, y_offs, z_sens, z_offs = calculation.sensitivity_calc(df_expected_acc, df_logger_avg_acc)
+    print(x_sens, y_sens , z_sens, x_offs, y_offs, z_offs)
+#------------------------------------------
+#AVERAGE AR LOOP
+    sheet = list(logger_step_times.keys())[4]
+    logger_avg_ar = []
+    for step_num, data in logger_step_times[sheet].items():
+        #key = logger.sheet_index[sheet]
+        print(f"Sheet: {sheet}, Step: {step_num}")
+        #print(data)
+        print(logger.df_formatted[sheet].loc[data[0]:data[1],:])
+        logger_avg_ar.append(calculation.df_average(logger.df_formatted[sheet], data[0], data[1]))
+    print(pd.concat(logger_avg_ar))
 
 def df_clean(num_sheets, sheet_index, df):
     df_cleaned = {}
@@ -83,63 +109,24 @@ def format_df_time(logger, reference, num_sheets):
 #START TIME FOR LOGGER LOOP and FORMAT LOGGER LOOP
     start_time_logger_array = []
     df_logger_formatted = {}
-    #for i, key in enumerate(logger_sheet_index):
+
     for i in range(num_sheets):
         key = logger.sheet_index[i]
         values = logger.df_cleaned[key]
-        #logger_avg_acc.append(calculation.df_average(df_logger_acc[key], 20))
+
         start_time_logger = input_reader.extract_start_logger(values)
         start_time_logger_array.append(start_time_logger)
-        
+        #print(start_time_logger)
         df_logger_added_time = calculation.add_time_logger(values)
         df_logger_formatted[key] = df_logger_added_time
 
 #ADDING TIME TO REFERENCE DF
     df_reference_formatted = {}
+
     for i in range(num_sheets):
         key = reference.sheet_index[i]
-        #values = df
+
         df_reference_added_time = calculation.add_time_reference(reference.df_cleaned[key], start_time_logger_array[i])
         df_reference_formatted[key] = df_reference_added_time #Can change so to add to reference_clean instead of making new format one
     return (df_logger_formatted, df_reference_formatted)
 
-#GETS THE START AND POINTS FOR EACH MINI JUMPP. Next step is to use start and end points to get ranges, which you can then use to get the timess.
-def turning_points(num_sheets, sheet_index, df, sheet_name, column_heading):    
-    step_up_temp = []
-    step_down_temp = []
-    filtered_step_up = []
-    filtered_step_down = []
-    step_up = {}
-    step_down = {}
-    filtered_df = {}
-
-    if sheet_name == "logger":
-        threshold = 0.2
-    elif sheet_name == "reference":
-        threshold = 200
-
-    for i in range(num_sheets):
-        key = sheet_index[i]
-        values = df[key]
-
-        values["gradient"] = calculation.gradient(values[column_heading]) #since the logger and reference have different titles, put it as 'or'
-
-        step_up_temp = values.nlargest(20, "gradient")
-        step_down_temp = values.nsmallest(20, "gradient")
-        
-
-        filtered_step_up = step_up_temp[step_up_temp['gradient'] > threshold].sort_values(by = ["Time (formatted)"])
-        filtered_step_down = step_down_temp[step_down_temp['gradient'].abs() > threshold].sort_values(by = ["Time (formatted)"])
-
-        step_up[key] = turning_point(filtered_step_up, "first")
-        step_down[key] = turning_point(filtered_step_down, "last")
-    
-    return step_up, step_down
-        
-def turning_point(df, position):
-    indices = df.index.to_series()
-
-    if position == "first":
-        return indices[indices.diff().abs().fillna(2) != 1].tolist()
-    elif position == "last":
-        return indices[indices.diff(periods=-1).abs().fillna(2) != 1].tolist()
