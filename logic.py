@@ -13,6 +13,9 @@ class data_information:
         self.df_formatted = dict
         self.df_acc = dict
         self.df_ar = dict
+        self.df_avg_acc = dict
+        self.df_avg_ar = dict
+
 
 def data_formatter(file, logger, reference, num_sheets):
     logger.df_original = input_reader.read_xlsx(file, logger.sheet_index)
@@ -23,7 +26,6 @@ def data_formatter(file, logger, reference, num_sheets):
 
     logger.df_formatted, reference.df_formatted = format_df_time(logger, reference, num_sheets) # This should be improved as now you have many functions inside the time_format function, should be homogeneous
     
-
 def main_logic():
     config = input_reader.read_input_yaml(r"Input.yaml")
     file = config.path.logger
@@ -44,20 +46,39 @@ def main_logic():
     pd.set_option("display.max_rows", None)
     pd.set_option("display.max_columns", None)
 
-    reference_step_times = calculation.step_detection(num_sheets, reference.sheet_index, reference.df_formatted, reference.sheet_name, "ARZ")
+    logger.df_avg_ar = df_avg_ar(num_sheets, logger.sheet_index, logger.df_formatted, logger.df_ar)
+    #print(logger.df_avg_ar)
+
+    #reference.df_avg_ar = df_avg_ar(num_sheets, reference.sheet_index, reference.df_formatted, reference.df_ar)
+    #print(reference.df_avg_ar)
+    print(reference.df_formatted)
+    '''
+    #print(reference.df_formatted[10])
+    #logger_step_times = calculation.step_detection(num_sheets, logger.sheet_index, logger.df_formatted, logger.sheet_name, "ArY")
+    #reference_step_times = calculation.step_detection(num_sheets, reference.sheet_index, reference.df_formatted, reference.sheet_name, "ARZ")
     #print(reference_step_times)
-    logger_step_times = calculation.logger_step_detection(num_sheets, reference.sheet_index, logger.sheet_index, reference_step_times, logger.df_formatted)
+    #logger_step_times = calculation.logger_step_detection(num_sheets, reference.sheet_index, logger.sheet_index, reference_step_times, logger.df_formatted)
     #print(logger_step_times)
     #print(logger.df_formatted[2]["Time (formatted)"])
 
-    '''  
+    #AVERAGE AR LOOP
+    sheet = list(logger_step_times.keys())[4]
+    logger_avg_ar = []
+    for step_num, data in logger_step_times[sheet].items():
+        #key = logger.sheet_index[sheet]
+        print(f"Sheet: {sheet}, Step: {step_num}")
+        #print(data)
+        print(logger.df_formatted[sheet].loc[data[0]:data[1],:])
+        logger_avg_ar.append(calculation.df_average(logger.df_formatted[sheet], data[0], data[1]))
+    print(pd.concat(logger_avg_ar))
+
     for sheet, steps in logger_step_times.items():
         for step_num, data in steps.items():
             print(f"Sheet: {sheet}, Step: {step_num}")
             #print(logger.df_formatted[sheet, ])
             print(data)
     #print(logger.df_formatted[2].loc[:,"Time (formatted)"])
-''' 
+
 #------------------------------------------
 #AVERAGE ACC LOOP
     logger_avg_acc = []
@@ -71,18 +92,45 @@ def main_logic():
 
     df_expected_acc = calculation.expected_acc_values(df_logger_avg_acc)
     x_sens, x_offs, y_sens, y_offs, z_sens, z_offs = calculation.sensitivity_calc(df_expected_acc, df_logger_avg_acc)
-    print(x_sens, y_sens , z_sens, x_offs, y_offs, z_offs)
+    #print(x_sens, y_sens , z_sens, x_offs, y_offs, z_offs)
 #------------------------------------------
+
 #AVERAGE AR LOOP
-    sheet = list(logger_step_times.keys())[4]
+    sheet = list(logger_step_times.keys())[2]
     logger_avg_ar = []
     for step_num, data in logger_step_times[sheet].items():
         #key = logger.sheet_index[sheet]
-        print(f"Sheet: {sheet}, Step: {step_num}")
+        #print(f"Sheet: {sheet}, Step: {step_num}")
         #print(data)
-        print(logger.df_formatted[sheet].loc[data[0]:data[1],:])
-        logger_avg_ar.append(calculation.df_average(logger.df_formatted[sheet], data[0], data[1]))
-    print(pd.concat(logger_avg_ar))
+        #print(logger.df_formatted[sheet].loc[data[0]:data[1],:])
+        logger_avg_ar.append(calculation.df_average(logger.df_ar[sheet], data[0], data[1]))
+    df_logger_avg_ar = pd.concat(logger_avg_ar)
+    df_logger_avg_ar = df_logger_avg_ar.drop('Time (formatted)', axis=1)
+    #print(df_logger_avg_ar)
+    #df_expected_acc = calculation.expected_ar_values(df_logger_avg_acc)
+    #x_sens, x_offs, y_sens, y_offs, z_sens, z_offs = calculation.sensitivity_calc(df_expected_acc, df_logger_avg_acc)
+
+    logger_avg_ar = []
+
+    for sheet, steps in logger_step_times.items():
+        for step_num, (start, end) in steps.items():
+            avg = calculation.df_average(
+                logger.df_ar[sheet],
+                start,
+                end
+            )
+
+            avg["Sheet"] = sheet
+            avg["Step"] = step_num
+
+            logger_avg_ar.append(avg)
+
+    df_logger_avg_ar = (
+        pd.concat(logger_avg_ar, ignore_index=True)
+        .drop(columns="Time (formatted)", errors="ignore")
+    )
+    print(df_logger_avg_ar)
+    '''
 
 def df_clean(num_sheets, sheet_index, df):
     df_cleaned = {}
@@ -129,4 +177,53 @@ def format_df_time(logger, reference, num_sheets):
         df_reference_added_time = calculation.add_time_reference(reference.df_cleaned[key], start_time_logger_array[i])
         df_reference_formatted[key] = df_reference_added_time #Can change so to add to reference_clean instead of making new format one
     return (df_logger_formatted, df_reference_formatted)
+'''
+def build_steps(values, mode, threshold):
 
+    if mode == "logger":
+        ArX_steps = calculation.detect_steps(values, "ArX", threshold)
+        ArY_steps = calculation.detect_steps(values, "ArY", threshold)
+    elif mode == "reference":
+        ArX_steps = 
+'''
+
+def df_avg_ar(num_sheets, sheet_index, df, df_ar):
+    all_steps = {}
+    logger_avg_ar = []
+    for i in range(num_sheets):
+        key = sheet_index[i]
+        values = df[key]
+
+        logger_step_times_Y = calculation.detect_steps(values, "ArY", 0.2)
+        logger_step_times_X = calculation.detect_steps(values, "ArX", 0.2)
+
+        combined = logger_step_times_X + logger_step_times_Y
+        combined.sort(key=lambda step: step["start_time"])
+        
+        all_steps[key] = {
+            step_num: {
+                "indices": step["indices"],
+                "start time": step["start_time"],
+                "end time": step["end_time"]
+            }
+            for step_num, step in enumerate(combined, start=1)
+        }
+
+        for step_num, data in all_steps[key].items():
+            print(f"sheet: {key}, step: {step_num}")
+            print("indices: ", data["indices"])
+            print("times: ", data["start time"], data["end time"])
+
+            logger_avg_ar.append(
+                calculation.df_average(
+                    df_ar[key], 
+                    data["indices"][0], 
+                    data["indices"][1]
+                )
+            )
+
+        df_logger_avg_ar = (
+            pd.concat(logger_avg_ar)
+            .drop(columns="Time (formatted)", errors="ignore")
+        )
+    return(df_logger_avg_ar)

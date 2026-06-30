@@ -70,6 +70,9 @@ def expected_acc_values(df_logger_avg_acc):
 
     return(df_expected_acc)
 
+#def expected_ar_values(df_logger_avg_ar):
+
+
 def sensitivity_calc(df_expected_acc, df_logger_avg_acc):
     x1 = pd.to_numeric(df_expected_acc.iloc[:, 0])
     x2 = pd.to_numeric(df_logger_avg_acc.iloc[:, 0])
@@ -96,13 +99,14 @@ def sensitivity_calc(df_expected_acc, df_logger_avg_acc):
     return(x_sens, x_offs, y_sens, y_offs, z_sens, z_offs)
 
 #GETS THE START AND POINTS FOR EACH MINI JUMPP. Next step is to use start and end points to get ranges, which you can then use to get the timess.
+
 def step_detection(num_sheets, sheet_index, df, sheet_name, column_heading):    
     step_up = {}
     step_down = {}
     segments = {}
     step_times = {}
-    start_padding = 1
-    end_padding = 14
+    start_padding = 5
+    end_padding = 5
 
     if sheet_name == "logger":
         threshold = 0.2
@@ -113,7 +117,7 @@ def step_detection(num_sheets, sheet_index, df, sheet_name, column_heading):
         key = sheet_index[i]
         values = df[key]
 
-        values["gradient"] = gradient(values[column_heading]) #since the logger and reference have different titles, put it as 'or'
+        values["gradient"] = gradient(values[column_heading])
 
         step_up_temp = values.nlargest(20, "gradient")
         step_down_temp = values.nsmallest(20, "gradient")
@@ -126,8 +130,8 @@ def step_detection(num_sheets, sheet_index, df, sheet_name, column_heading):
 
         segments[key] = []
         for u, d in zip(step_up, step_down):
-            start = min(u, d) + start_padding
-            end = max(u, d) - end_padding
+            start = min(u, d)
+            end = max(u, d)
 
             segments[key].append(
                 values.loc[[start,end]]
@@ -141,7 +145,40 @@ def step_detection(num_sheets, sheet_index, df, sheet_name, column_heading):
    
     return step_times
     #return segments
-        
+ 
+def detect_steps(values, column, threshold):
+    padding = 5
+    values = values.copy()
+    values["gradient"] = gradient(values[column])
+
+    step_up_temp = values.nlargest(20, "gradient")
+    step_down_temp = values.nsmallest(20, "gradient")
+
+    filtered_up = step_up_temp[
+        step_up_temp["gradient"] > threshold
+    ].sort_values("Time (formatted)")
+
+    filtered_down = step_down_temp[
+        step_down_temp["gradient"].abs() > threshold
+    ].sort_values("Time (formatted)")
+
+    step_up = turning_point(filtered_up, "up")[:4]
+    step_down = turning_point(filtered_down, "down")[:4]
+    
+    segments = []
+    for u, d in zip(step_up, step_down):
+        start = min(u, d) + padding
+        end = max(u, d) - padding
+
+        segments.append({
+            "indices": [start, end],
+            "start_time": int(values.loc[start, "Time (formatted)"]),
+            "end_time": int(values.loc[end, "Time (formatted)"])
+        })
+        #print(values.loc[[start, end], ["Time (formatted)"]])  
+    #print(column)    
+    return segments
+
 def turning_point(df, position):
     indices = df.index.to_series()
 
@@ -152,7 +189,7 @@ def turning_point(df, position):
 
 def gradient(df):
     numeric = pd.to_numeric(df, errors = 'coerce')  #converts any non-numerical data to 0 difference
-    smoothed_signal = numeric.rolling(window=4, center=True).median()   #These two should really be in the data filter function
+    smoothed_signal = numeric.rolling(window=20, center=True).median()   #These two should really be in the data filter function
     #smoothed_signal = rolling_average(numeric)
     gradient = smoothed_signal.diff().fillna(0)
     return gradient
