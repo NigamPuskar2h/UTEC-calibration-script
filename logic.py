@@ -16,6 +16,38 @@ class data_information:
         self.df_avg_acc = dict
         self.df_avg_ar = dict
 
+def main_logic():
+    config = input_reader.read_input_yaml(r"Input.yaml")
+    file = config.path.logger
+
+    pd.set_option("display.max_rows", None)
+    pd.set_option("display.max_columns", None)
+
+    logger_sheet_index = [2, 3, 4, 5, 6, 7, 8, 9]
+    reference_sheet_index = [10, 11, 12, 13, 14, 15, 16, 17]
+    num_sheets = len(logger_sheet_index)
+
+    logger = data_information(logger_sheet_index, "logger")
+    reference = data_information(reference_sheet_index, "reference")
+
+    data_formatter(file, logger, reference, num_sheets)
+
+    logger.df_acc, logger.df_ar = df_acc_ar(num_sheets, logger.sheet_index, logger.df_formatted)
+    reference.df_acc, reference.df_ar = df_acc_ar(num_sheets, reference.sheet_index, reference.df_formatted)
+
+    logger.df_avg_acc = df_avg_acc(num_sheets, logger.sheet_index, logger.df_acc)
+    expected_acc = calculation.expected_acc_values(logger.df_avg_acc)
+    print(calculation.sensitivity_calc(expected_acc, logger.df_avg_acc))
+
+    logger.df_avg_ar = df_avg_ar(num_sheets, logger.sheet_index, logger.df_ar, mode = "logger", threshold=0.2)
+    reference.df_avg_ar = df_avg_ar(num_sheets, reference.sheet_index, reference.df_ar, mode = "reference", threshold=200)
+    expected_ar = calculation.expected_ar_values(logger.df_avg_ar, reference.df_avg_ar)
+    print(calculation.sensitivity_calc(expected_ar, logger.df_avg_ar))
+
+    #print(logger.df_avg_acc)
+    #print(logger.df_avg_ar)
+    #print(reference.df_avg_ar)
+    #print(expected_ar)
 
 def data_formatter(file, logger, reference, num_sheets):
     logger.df_original = input_reader.read_xlsx(file, logger.sheet_index)
@@ -25,113 +57,6 @@ def data_formatter(file, logger, reference, num_sheets):
     reference.df_cleaned = df_clean(num_sheets, reference.sheet_index, reference.df_original)
 
     logger.df_formatted, reference.df_formatted = format_df_time(logger, reference, num_sheets) # This should be improved as now you have many functions inside the time_format function, should be homogeneous
-    
-def main_logic():
-    config = input_reader.read_input_yaml(r"Input.yaml")
-    file = config.path.logger
-
-    logger_sheet_index = [2, 3, 4, 5, 6, 7, 8, 9]
-    reference_sheet_index = [10, 11, 12, 13, 14, 15, 16, 17]
-
-    logger = data_information(logger_sheet_index, "logger")
-    reference = data_information(reference_sheet_index, "reference")
-
-    num_sheets = len(logger_sheet_index)
-
-    data_formatter(file, logger, reference, num_sheets)
-
-    logger.df_acc, logger.df_ar = df_acc_ar(num_sheets, logger.sheet_index, logger.df_formatted)
-    reference.df_acc, reference.df_ar = df_acc_ar(num_sheets, reference.sheet_index, reference.df_formatted)
-
-    pd.set_option("display.max_rows", None)
-    pd.set_option("display.max_columns", None)
-
-    '''
-    #print(reference.df_formatted[10])
-    #logger_step_times = calculation.step_detection(num_sheets, logger.sheet_index, logger.df_formatted, logger.sheet_name, "ArY")
-    #reference_step_times = calculation.step_detection(num_sheets, reference.sheet_index, reference.df_formatted, reference.sheet_name, "ARZ")
-    #print(reference_step_times)
-    #logger_step_times = calculation.logger_step_detection(num_sheets, reference.sheet_index, logger.sheet_index, reference_step_times, logger.df_formatted)
-    #print(logger_step_times)
-    #print(logger.df_formatted[2]["Time (formatted)"])
-
-    #AVERAGE AR LOOP
-    sheet = list(logger_step_times.keys())[4]
-    logger_avg_ar = []
-    for step_num, data in logger_step_times[sheet].items():
-        #key = logger.sheet_index[sheet]
-        print(f"Sheet: {sheet}, Step: {step_num}")
-        #print(data)
-        print(logger.df_formatted[sheet].loc[data[0]:data[1],:])
-        logger_avg_ar.append(calculation.df_average(logger.df_formatted[sheet], data[0], data[1]))
-    print(pd.concat(logger_avg_ar))
-
-    for sheet, steps in logger_step_times.items():
-        for step_num, data in steps.items():
-            print(f"Sheet: {sheet}, Step: {step_num}")
-            #print(logger.df_formatted[sheet, ])
-            print(data)
-    #print(logger.df_formatted[2].loc[:,"Time (formatted)"])
-
-#------------------------------------------
-#AVERAGE ACC LOOP
-    logger_avg_acc = []
-    start = 0
-    num_values = 20 #need to verify this
-    for i in range(num_sheets):
-        key = logger_sheet_index[i]
-        logger_avg_acc.append(calculation.df_average(logger.df_acc[key], start,  num_values))
-    df_logger_avg_acc = pd.concat(logger_avg_acc)
-    df_logger_avg_acc = df_logger_avg_acc.drop('Time (formatted)', axis=1)
-
-    df_expected_acc = calculation.expected_acc_values(df_logger_avg_acc)
-    x_sens, x_offs, y_sens, y_offs, z_sens, z_offs = calculation.sensitivity_calc(df_expected_acc, df_logger_avg_acc)
-    #print(x_sens, y_sens , z_sens, x_offs, y_offs, z_offs)
-#------------------------------------------
-
-#AVERAGE AR LOOP
-    sheet = list(logger_step_times.keys())[2]
-    logger_avg_ar = []
-    for step_num, data in logger_step_times[sheet].items():
-        #key = logger.sheet_index[sheet]
-        #print(f"Sheet: {sheet}, Step: {step_num}")
-        #print(data)
-        #print(logger.df_formatted[sheet].loc[data[0]:data[1],:])
-        logger_avg_ar.append(calculation.df_average(logger.df_ar[sheet], data[0], data[1]))
-    df_logger_avg_ar = pd.concat(logger_avg_ar)
-    df_logger_avg_ar = df_logger_avg_ar.drop('Time (formatted)', axis=1)
-    #print(df_logger_avg_ar)
-    #df_expected_acc = calculation.expected_ar_values(df_logger_avg_acc)
-    #x_sens, x_offs, y_sens, y_offs, z_sens, z_offs = calculation.sensitivity_calc(df_expected_acc, df_logger_avg_acc)
-
-    logger_avg_ar = []
-
-    for sheet, steps in logger_step_times.items():
-        for step_num, (start, end) in steps.items():
-            avg = calculation.df_average(
-                logger.df_ar[sheet],
-                start,
-                end
-            )
-
-            avg["Sheet"] = sheet
-            avg["Step"] = step_num
-
-            logger_avg_ar.append(avg)
-
-    df_logger_avg_ar = (
-        pd.concat(logger_avg_ar, ignore_index=True)
-        .drop(columns="Time (formatted)", errors="ignore")
-    )
-    print(df_logger_avg_ar)
-    '''
-    logger.df_avg_ar = df_avg_ar(num_sheets, logger.sheet_index, logger.df_formatted, logger.df_ar, mode = "logger", threshold=0.2)
-    #print(logger.df_avg_ar)
-    reference.df_avg_ar = df_avg_ar(num_sheets, reference.sheet_index, reference.df_formatted, reference.df_ar, mode = "reference", threshold=200)
-    #print(reference.df_avg_ar)
-    expected_ar = calculation.expected_ar_values(logger.df_avg_ar, reference.df_avg_ar)
-    #print(expected_ar)
-    print(calculation.sensitivity_calc(expected_ar, logger.df_avg_ar))
 
 def df_clean(num_sheets, sheet_index, df):
     df_cleaned = {}
@@ -171,7 +96,6 @@ def format_df_time(logger, reference, num_sheets):
 
         start_time_logger = input_reader.extract_start_logger(values)
         start_time_logger_array.append(start_time_logger)
-        #print(start_time_logger)
         df_logger_added_time = calculation.add_time_logger(values)
         df_logger_formatted[key] = df_logger_added_time
 
@@ -203,7 +127,21 @@ def build_steps(values, mode, threshold):
     combined.sort(key=lambda s: s["start_time"])
     return combined
 
-def df_avg_ar(num_sheets, sheet_index, df, df_ar, mode, threshold):
+def df_avg_acc(num_sheets, sheet_index, df_acc):
+    all_avg = []
+    start = 0
+    end = 20 #need to verify this
+    for i in range(num_sheets):
+        key = sheet_index[i]
+        all_avg.append(calculation.df_average(df_acc[key], start, end))
+
+    df_avg_acc = (
+        pd.concat(all_avg)
+        .drop(columns = "Time (formatted)")
+    )
+    return df_avg_acc
+
+def df_avg_ar(num_sheets, sheet_index, df_ar, mode, threshold):
     all_steps = {}
     all_avg = []
 
@@ -212,7 +150,7 @@ def df_avg_ar(num_sheets, sheet_index, df, df_ar, mode, threshold):
 
     for i in range(num_sheets):
         key = sheet_index[i]
-        values = df[key]
+        values = df_ar[key] #Built the same as df.formatted, so just using df_ar
 
         steps = build_steps(values, mode, threshold)
 
@@ -241,7 +179,7 @@ def df_avg_ar(num_sheets, sheet_index, df, df_ar, mode, threshold):
         }     
 
         for step_num, data in all_steps[key].items():
-            print(f"sheet: {key}, step: {step_num}")
+            #print(f"sheet: {key}, step: {step_num}")
             #print("indices: ", data["indices"])
             #print("times: ", data["start_time"], data["end_time"])
 
@@ -270,46 +208,3 @@ def df_avg_ar(num_sheets, sheet_index, df, df_ar, mode, threshold):
         else:
             raise ValueError("Unknown mode")
     return df_avg_ar
-
-'''
-def df_avg_ar(num_sheets, sheet_index, df, df_ar):
-    all_steps = {}
-    logger_avg_ar = []
-    for i in range(num_sheets):
-        key = sheet_index[i]
-        values = df[key]
-
-        logger_step_times_Y = calculation.detect_steps(values, "ArY", 0.2)
-        logger_step_times_X = calculation.detect_steps(values, "ArX", 0.2)
-
-        combined = logger_step_times_X + logger_step_times_Y
-        combined.sort(key=lambda step: step["start_time"])
-        
-        all_steps[key] = {
-            step_num: {
-                "indices": step["indices"],
-                "start time": step["start_time"],
-                "end time": step["end_time"]
-            }
-            for step_num, step in enumerate(combined, start=1)
-        }
-
-        for step_num, data in all_steps[key].items():
-            print(f"sheet: {key}, step: {step_num}")
-            print("indices: ", data["indices"])
-            print("times: ", data["start time"], data["end time"])
-
-            logger_avg_ar.append(
-                calculation.df_average(
-                    df_ar[key], 
-                    data["indices"][0], 
-                    data["indices"][1]
-                )
-            )
-
-        df_logger_avg_ar = (
-            pd.concat(logger_avg_ar)
-            .drop(columns="Time (formatted)", errors="ignore")
-        )
-    return(df_logger_avg_ar)
-'''
