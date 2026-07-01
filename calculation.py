@@ -1,20 +1,8 @@
 import pandas as pd 
 import numpy as np
 from scipy.stats import linregress
-'''
-#Returns the average of all the columns in a df
-def df_average(df, n):
-    #average_df = df.mean(axis=0)
-    if n == None:
-        average_df = df.select_dtypes(include="number").mean(axis=0)
-    elif n != None:
-        average_df = df.iloc[:n].select_dtypes(include="number").mean(axis=0)
-    average_df = average_df.to_frame().T
-    return(average_df)
-'''
 #Returns the average of all the columns in a df
 def df_average(df, start, end):
-    #average_df = df.mean(axis=0)
     average_df = df.loc[start:end].select_dtypes(include="number").mean(axis=0).to_frame().T
     return(average_df)
 
@@ -70,36 +58,81 @@ def expected_acc_values(df_logger_avg_acc):
 
     return(df_expected_acc)
 
-#def expected_ar_values(df_logger_avg_ar):
+def expected_ar_values(logger_ar, reference_ar):
+    df_expected_acc = pd.DataFrame(
+        np.zeros_like(logger_ar),
+        index=logger_ar.index,
+        columns=logger_ar.columns
+    )
 
+    slow_max = 2.6
+    slow_min = 1.5
+    neutral = 2.0
+    fast_max = 3.8
+    fast_min = 0.2
 
-def sensitivity_calc(df_expected_acc, df_logger_avg_acc):
-    x1 = pd.to_numeric(df_expected_acc.iloc[:, 0])
-    x2 = pd.to_numeric(df_logger_avg_acc.iloc[:, 0])
+    buffer = 0.2
 
-    y1 = pd.to_numeric(df_expected_acc.iloc[:, 1])
-    y2 = pd.to_numeric(df_logger_avg_acc.iloc[:, 1])
+    for i in range(logger_ar.shape[0]):
 
-    z1 = pd.to_numeric(df_expected_acc.iloc[:, 2])
-    z2 = pd.to_numeric(df_logger_avg_acc.iloc[:, 2])
+        # pick active axis per row (same idea as calibration sheet)
+        arx = logger_ar.iloc[i, 0]
+        ary = logger_ar.iloc[i, 1]
 
-    x_sens_offs = np.polyfit(x2, x1, 1)
-    y_sens_offs = np.polyfit(y2, y1, 1)
-    z_sens_offs = np.polyfit(z2, z1, 1)
+        # decide which axis is "active" (farthest from neutral)
+        if abs(arx - neutral) >= abs(ary - neutral):
+            active_col = 0
+            active_val = arx
+        else:
+            active_col = 1
+            active_val = ary
 
-    x_sens = x_sens_offs[0]
-    x_offs = -x_sens_offs[1]/x_sens
+        # classify bucket → sign
+        if abs(active_val - slow_max) <= buffer:
+            sign = -1
+        elif abs(active_val - slow_min) <= buffer:
+            sign = +1
+        elif abs(active_val - fast_max) <= buffer:
+            sign = -1
+        elif abs(active_val - fast_min) <= buffer:
+            sign = +1
+        else:
+            sign = 0
 
-    y_sens = y_sens_offs[0]
-    y_offs = -y_sens_offs[1]/y_sens
+        # assign expected value (row-aligned reference!)
+        expected_val = sign * abs(reference_ar.iloc[i])
 
-    z_sens = z_sens_offs[0]
-    z_offs = -z_sens_offs[1]/z_sens
+        # fill output
+        df_expected_acc.iloc[i, active_col] = expected_val
+        df_expected_acc.iloc[i, 1 - active_col] = 0
 
-    return(x_sens, x_offs, y_sens, y_offs, z_sens, z_offs)
+    return df_expected_acc
+
+def sensitivity_calc(df_expected, df_logger):
+    sensitivities = []
+
+    # ensure numeric + aligned
+    df_expected = df_expected.apply(pd.to_numeric)
+    df_logger = df_logger.apply(pd.to_numeric)
+
+    n_cols = df_expected.shape[1]
+
+    for col in range(n_cols):
+        expected = df_expected.iloc[:, col]
+        logger = df_logger.iloc[:, col]
+
+        # linear fit: logger → expected
+        slope, intercept = np.polyfit(logger, expected, 1)
+
+        sens = float(slope)
+        offset = float(-intercept / slope) if slope != 0 else np.nan
+
+        sensitivities.append((sens, offset))
+
+    return sensitivities
 
 #GETS THE START AND POINTS FOR EACH MINI JUMPP. Next step is to use start and end points to get ranges, which you can then use to get the timess.
-
+'''
 def step_detection(num_sheets, sheet_index, df, sheet_name, column_heading):    
     step_up = {}
     step_down = {}
@@ -145,7 +178,7 @@ def step_detection(num_sheets, sheet_index, df, sheet_name, column_heading):
    
     return step_times
     #return segments
- 
+ '''
 def detect_steps(values, column, threshold):
     padding = 5
     values = values.copy()
@@ -153,6 +186,8 @@ def detect_steps(values, column, threshold):
 
     step_up_temp = values.nlargest(20, "gradient")
     step_down_temp = values.nsmallest(20, "gradient")
+
+    #print(step_down_temp)
 
     filtered_up = step_up_temp[
         step_up_temp["gradient"] > threshold
@@ -162,8 +197,24 @@ def detect_steps(values, column, threshold):
         step_down_temp["gradient"].abs() > threshold
     ].sort_values("Time (formatted)")
 
-    step_up = turning_point(filtered_up, "up")[:4]
-    step_down = turning_point(filtered_down, "down")[:4]
+    #print(filtered_down)
+
+    step_up = turning_point(filtered_up, "up")
+    step_down = turning_point(filtered_down, "down")
+
+    min_separation = 20
+    i = 0
+    while i < min(len(step_up), len(step_down)):
+        if abs(step_up[i] - step_down[i]) < min_separation:
+            step_up.pop(i)
+            step_down.pop(i)
+        else:
+            i += 1
+
+    step_up = step_up[:4]
+    step_down = step_down[:4]
+       
+    #print(step_down)
     
     segments = []
     for u, d in zip(step_up, step_down):
@@ -175,8 +226,7 @@ def detect_steps(values, column, threshold):
             "start_time": int(values.loc[start, "Time (formatted)"]),
             "end_time": int(values.loc[end, "Time (formatted)"])
         })
-        #print(values.loc[[start, end], ["Time (formatted)"]])  
-    #print(column)    
+        #print(values.loc[[start, end], ["Time (formatted)"]])      
     return segments
 
 def turning_point(df, position):
@@ -189,7 +239,7 @@ def turning_point(df, position):
 
 def gradient(df):
     numeric = pd.to_numeric(df, errors = 'coerce')  #converts any non-numerical data to 0 difference
-    smoothed_signal = numeric.rolling(window=20, center=True).median()   #These two should really be in the data filter function
+    smoothed_signal = numeric.rolling(window=10, center=True).median()   #These two should really be in the data filter function
     #smoothed_signal = rolling_average(numeric)
     gradient = smoothed_signal.diff().fillna(0)
     return gradient
